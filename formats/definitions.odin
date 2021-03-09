@@ -14,6 +14,8 @@ PE_File :: struct {
 		PE64_Optional_Header,
 	},
 	data_directory: []Data_Directory_Entry,
+	section_headers: []Section_Header,
+
 	// If .Fill_Raw_Buffer is passed on open, this will contain the entire file for further inspection.
 	raw: []byte,
 }
@@ -222,6 +224,23 @@ Data_Directory_Entry :: struct {
 	virtual_address: u32le,
 	size: u32le,
 }
+DATA_DIRECTORY_SIZE :: size_of(Data_Directory_Entry);
+
+Section_Header :: struct {
+	name: [8]byte,
+	virtual_size: u32le,
+	virtual_address: u32le,
+	size_of_raw_data: u32le,
+	ptr_to_raw_data: u32le,
+	ptr_to_relocations: u32le,
+	ptr_to_line_numbers: u32le,
+	number_of_relocations: u16le,
+	number_of_line_numbers: u16le,
+	characteristics: u32le,
+
+}
+SECTION_HEADER_SIZE :: size_of(Section_Header);
+#assert(SECTION_HEADER_SIZE == 40);
 
 Windows_Subsystem :: enum u16le {
 	Unknown                  = 0,

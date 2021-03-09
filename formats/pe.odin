@@ -9,6 +9,7 @@ import "core:math/bits"
 import "core:fmt"
 import "core:mem"
 import "core:time"
+import "core:strings"
 
 open :: proc {
 	open_from_file,
@@ -125,7 +126,7 @@ open_from_byte_array :: proc(contents: []byte, options:=PE_Options{}) -> (PE_Fil
 
 		data_directory_entries = int(optional_header.(PE32_Optional_Header).number_of_rva_and_size);
 
-		if int(data_directory_entries * 8 + PE32_OPTIONAL_HEADER_SIZE) != int(coff_header.optional_header_size) {
+		if int(data_directory_entries * DATA_DIRECTORY_SIZE + PE32_OPTIONAL_HEADER_SIZE) != int(coff_header.optional_header_size) {
 			return pe_file, .Malformed_Optional_Header;		
 		}
 	} else if optional_magic == Signature.PE64 {
@@ -136,20 +137,26 @@ open_from_byte_array :: proc(contents: []byte, options:=PE_Options{}) -> (PE_Fil
 		optional_header = mem.slice_data_cast([]PE64_Optional_Header, optional_header_bytes)[0];
 
 		data_directory_entries = int(optional_header.(PE64_Optional_Header).number_of_rva_and_size);
-		if int(data_directory_entries * 8 + PE64_OPTIONAL_HEADER_SIZE) != int(coff_header.optional_header_size) {
+		if int(data_directory_entries * DATA_DIRECTORY_SIZE + PE64_OPTIONAL_HEADER_SIZE) != int(coff_header.optional_header_size) {
 			return pe_file, .Malformed_Optional_Header;		
 		}
 	} else {
 		return pe_file, .Malformed_Optional_Header;
 	}
 
-	data_directory_size = data_directory_entries * 8;
-
+	data_directory_size = data_directory_entries * DATA_DIRECTORY_SIZE;
 	data_directory_bytes: []byte;
+
 	ok, data_directory_bytes, offset = get_bytes(contents, offset, data_directory_size);
 	if ok == false do return pe_file, .File_Too_Short;
-
 	data_directory = mem.slice_data_cast([]Data_Directory_Entry, data_directory_bytes);
+
+	section_header_size := int(coff_header.number_of_sections) * SECTION_HEADER_SIZE;
+	section_header_bytes: []byte;
+
+	ok, section_header_bytes, offset = get_bytes(contents, offset, section_header_size);
+	if ok == false do return pe_file, .File_Too_Short;
+	section_headers = mem.slice_data_cast([]Section_Header, section_header_bytes);
 
 	return pe_file, .OK;
 }
@@ -166,7 +173,13 @@ main :: proc() {
 
 		build_date := time.Time{_nsec = i64(pe_file.coff_header.time_date_stamp) * 1e9};
 		fmt.printf("\n%v was built on %v\n", filename, build_date);
-		fmt.println();
+		// fmt.println();
+		// for section, i in pe_file.section_headers {
+		// 	name_ptr := &pe_file.section_headers[i].name[0];
+		// 	name := transmute(string)mem.Raw_String{name_ptr, 8};
+		// fmt.println("Section: ", i, name);
+		// }
+
 		fmt.println(pe_file);
 	} else {
 		fmt.println("Couldn't open", filename, errors);
