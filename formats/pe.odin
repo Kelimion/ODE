@@ -10,6 +10,7 @@ import "core:fmt"
 import "core:mem"
 import "core:time"
 import "core:strings"
+import "core:io"
 
 parse_pe :: proc {
 	parse_pe_from_file,
@@ -92,9 +93,6 @@ parse_coff_from_byte_array :: proc(buffer: []byte, i_offset: int) -> (Coff_File,
 		optional_magic_bytes: []byte;
 		ok, optional_magic_bytes = peek_bytes(buffer, offset, 2);
 		optional_magic := mem.slice_data_cast([]Signature, optional_magic_bytes)[0];
-
-		fmt.println(header);
-		fmt.println(optional_magic);
 
 		data_directory_entries := 0;
 		data_directory_size    := 0;
@@ -204,10 +202,45 @@ parse_pe_from_byte_array :: proc(buffer: []byte, options:=PE_Options{}) -> (PE_F
 	return pe_file, .OK;
 }
 
+section_header_formatter :: proc(fi: ^fmt.Info, arg: any, verb: rune) -> bool {
+
+	using strings;
+	assert(arg.id == Section_Header);
+	sh: ^Section_Header;
+	sh = cast(^Section_Header)arg.data;
+	// Section_Header :: struct {
+	// 	name: [8]byte,
+	// 	virtual_size: u32le,
+	// 	virtual_address: u32le,
+	// 	size_of_raw_data: u32le,
+	// 	ptr_to_raw_data: u32le,
+	// 	ptr_to_relocations: u32le,
+	// 	ptr_to_line_numbers: u32le,
+	// 	number_of_relocations: u16le,
+	// 	number_of_line_numbers: u16le,
+	// 	characteristics: Image_Section_Characteristics,
+	// }
+
+	name := string_from_ptr(&sh.name[0], 8);
+	io.write_string(fi.writer, "{name = ");
+	io.write_string(fi.writer, name);
+	io.write_string(fi.writer, ", virtual_size = ");
+	fmt.fmt_int(fi, u64(sh.virtual_size), false, 32, 'v');
+	io.write_string(fi.writer, "}");
+	return true;
+}
 
 main :: proc() {
 
 	if false {
+		user_formatters: map[typeid]fmt.User_Formatter;
+		fmt.set_user_formatters(&user_formatters);
+
+		err: fmt.Register_User_Formatter_Error;
+		err = fmt.register_user_formatter(Section_Header, section_header_formatter);
+	}
+
+	if true {
 		filename := "../test/test.exe";
 		if pe_file, errors := parse_pe(filename); errors == .OK {
 
@@ -215,12 +248,12 @@ main :: proc() {
 			build_date := time.Time{_nsec = i64(header.time_date_stamp) * 1e9};
 			fmt.printf("\n%v was built on %v\n", filename, build_date);
 			fmt.println();
-			// for section, i in pe_file.section_headers {
-			// 	name_ptr := &pe_file.section_headers[i].name[0];
-			// 	name := transmute(string)mem.Raw_String{name_ptr, 8};
+			for section, i in section_headers {
+				name_ptr := &section_headers[i].name[0];
+				name := transmute(string)mem.Raw_String{name_ptr, 8};
 
-			// fmt.println("Section: ", i, name);
-			// }
+				fmt.println("Section: ", i, name);
+			}
 
 			fmt.println(pe_file);
 		} else {
