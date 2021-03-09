@@ -8,16 +8,19 @@ PE_File :: struct {
 	dos_header: DOS_Header,
 	real_mode_stub: []byte,
 	pe_header: PE_Header,
-	coff_header: COFF_Header,
-	optional_header: union {
+	coff: Coff_File,
+	// If .Fill_Raw_Buffer is passed on open, this will contain the entire file for further inspection.
+	raw: []byte,
+}
+
+Coff_File :: struct {
+	header: COFF_Header,
+	optional_header: union {					// Unused in object file
 		PE32_Optional_Header,
 		PE64_Optional_Header,
 	},
-	data_directory: []Data_Directory_Entry,
+	data_directory: []Data_Directory_Entry,		// Unused in object file
 	section_headers: []Section_Header,
-
-	// If .Fill_Raw_Buffer is passed on open, this will contain the entire file for further inspection.
-	raw: []byte,
 }
 
 PE_Option_Flags :: enum {
