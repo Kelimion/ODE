@@ -236,7 +236,7 @@ Section_Header :: struct {
 	ptr_to_line_numbers: u32le,
 	number_of_relocations: u16le,
 	number_of_line_numbers: u16le,
-	characteristics: u32le,
+	characteristics: Image_Section_Characteristics,
 
 }
 SECTION_HEADER_SIZE :: size_of(Section_Header);
@@ -279,3 +279,36 @@ DLL_Characteristics_Flags :: enum u16le {
 }
 
 DLL_Characteristics :: distinct bit_set[DLL_Characteristics_Flags; u16le];
+
+Image_Section_Flags :: enum u32le {
+	Type_No_Pad           =  3, // 0x00000008
+	Reserved1             =  4, // 0x00000010
+	Code                  =  5, // 0x00000020
+	Initialized_Data      =  6, // 0x00000040
+	Uninitalized_Data     =  7, // 0x00000080
+	Link_Other            =  8, // 0x00000100
+	Link_Info             =  9, // 0x00000200
+    Reserved2             = 10, // 0x00000400
+    Link_Remove           = 11, // 0x00000800
+    Link_Comdat           = 12, // 0x00001000
+    Reserved3             = 13, // 0x00002000
+    Reserved4             = 14, // 0x00004000
+    GP_Relative           = 15, // 0x00008000
+    Mem_Purgeable         = 16, // 0x00010000
+    Mem_16_bit            = 17, // 0x00020000
+    Mem_Locked            = 18, // 0x00040000
+    Mem_Preload           = 19, // 0x00080000
+    Align_Bit_1           = 20, // 0x00100000
+    Align_Bit_2           = 21, // 0x00200000
+    Align_Bit_3           = 22, // 0x00400000
+    Align_Bit_4           = 23, // 0x00800000
+    Relocation_Overflow   = 24, // 0x01000000
+    Mem_Discardable       = 25, // 0x02000000
+	Mem_Not_Cached        = 26, // 0x04000000
+	Mem_Not_Paged         = 27, // 0x08000000
+	Mem_Shared            = 28, // 0x10000000
+	Mem_Execute           = 29, // 0x20000000
+	Mem_Read              = 30, // 0x40000000
+	Mem_Write             = 31, // 0x80000000
+}
+Image_Section_Characteristics :: distinct bit_set[Image_Section_Flags; u32le];

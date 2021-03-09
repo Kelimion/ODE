@@ -18,8 +18,16 @@ open :: proc {
 
 open_from_file :: proc(path: string, options:=PE_Options{}) -> (PE_File, PE_Errors) {
 
+	read_start := time.tick_now();
 	if contents, ok := os.read_entire_file(path); ok {
-		return open_from_byte_array(contents, options);
+		read_end := time.tick_now();
+		fmt.printf("PE file read in %s.\n", fmt.tprint(time.tick_diff(read_start, read_end)));
+
+		parse_start := time.tick_now();
+		pe_file, errors := open_from_byte_array(contents, options);
+		parse_end := time.tick_now();
+		fmt.printf("PE file parsed in %s.\n", fmt.tprint(time.tick_diff(parse_start, parse_end)));
+		return pe_file, errors;
 	} else {
 		return PE_File{}, .Could_Not_Open_File;
 	}
@@ -164,12 +172,8 @@ open_from_byte_array :: proc(contents: []byte, options:=PE_Options{}) -> (PE_Fil
 
 main :: proc() {
 
-	parse_start := time.tick_now();
 	filename := "../test/test.exe";
 	if pe_file, errors := open(filename); errors == .OK {
-		parse_time := time.tick_diff(parse_start, time.tick_now());
-
-		fmt.printf("PE file read and parsed in %s.\n", fmt.tprint(parse_time));
 
 		build_date := time.Time{_nsec = i64(pe_file.coff_header.time_date_stamp) * 1e9};
 		fmt.printf("\n%v was built on %v\n", filename, build_date);
@@ -177,6 +181,7 @@ main :: proc() {
 		// for section, i in pe_file.section_headers {
 		// 	name_ptr := &pe_file.section_headers[i].name[0];
 		// 	name := transmute(string)mem.Raw_String{name_ptr, 8};
+
 		// fmt.println("Section: ", i, name);
 		// }
 
