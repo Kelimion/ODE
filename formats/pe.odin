@@ -131,7 +131,7 @@ parse_coff_from_byte_array :: proc(buffer: []byte, i_offset: int) -> (Coff_File,
 		data_directory = mem.slice_data_cast([]Data_Directory_Entry, data_directory_bytes);
 	}
 
-	section_header_size := int(header.number_of_sections) * SECTION_HEADER_SIZE;
+	section_header_size := int(header.sections_count) * SECTION_HEADER_SIZE;
 	section_header_bytes: []byte;
 
 	ok, section_header_bytes, offset = get_bytes(buffer, offset, section_header_size);
@@ -202,32 +202,78 @@ parse_pe_from_byte_array :: proc(buffer: []byte, options:=PE_Options{}) -> (PE_F
 	return pe_file, .OK;
 }
 
+isc_alignment_size :: proc(isc: Image_Section_Characteristics) -> (size: int) {
+
+	size = 0;
+
+	return;
+}
+
 section_header_formatter :: proc(fi: ^fmt.Info, arg: any, verb: rune) -> bool {
 
 	using strings;
 	assert(arg.id == Section_Header);
 	sh: ^Section_Header;
 	sh = cast(^Section_Header)arg.data;
-	// Section_Header :: struct {
-	// 	name: [8]byte,
-	// 	virtual_size: u32le,
-	// 	virtual_address: u32le,
-	// 	size_of_raw_data: u32le,
-	// 	ptr_to_raw_data: u32le,
-	// 	ptr_to_relocations: u32le,
-	// 	ptr_to_line_numbers: u32le,
-	// 	number_of_relocations: u16le,
-	// 	number_of_line_numbers: u16le,
-	// 	characteristics: Image_Section_Characteristics,
-	// }
 
-	name := string_from_ptr(&sh.name[0], 8);
+	name := trim_right_null(string_from_ptr(&sh.name[0], 8));
 	io.write_string(fi.writer, "{name = ");
 	io.write_string(fi.writer, name);
 	io.write_string(fi.writer, ", virtual_size = ");
 	fmt.fmt_int(fi, u64(sh.virtual_size), false, 32, 'v');
+	io.write_string(fi.writer, ", virtual_address = ");
+	fmt.fmt_int(fi, u64(sh.virtual_address), false, 32, 'v');
+	io.write_string(fi.writer, ", raw_data_size = ");
+	fmt.fmt_int(fi, u64(sh.raw_data_size), false, 32, 'v');
+	io.write_string(fi.writer, ", raw_data_ptr = ");
+	fmt.fmt_int(fi, u64(sh.raw_data_ptr), false, 32, 'v');
+	io.write_string(fi.writer, ", relocations_ptr = ");
+	fmt.fmt_int(fi, u64(sh.relocations_ptr), false, 32, 'v');
+	io.write_string(fi.writer, ", line_numbers_ptr = ");
+	fmt.fmt_int(fi, u64(sh.relocations_ptr), false, 32, 'v');
+	io.write_string(fi.writer, ", relocations_count = ");
+	fmt.fmt_int(fi, u64(sh.relocations_count), false, 32, 'v');
+	io.write_string(fi.writer, ", line_numbers_count = ");
+	fmt.fmt_int(fi, u64(sh.line_numbers_count), false, 32, 'v');
+	io.write_string(fi.writer, ", characteristics = ");
+	fmt.fmt_bit_set(fi, sh.characteristics);
 	io.write_string(fi.writer, "}");
 	return true;
+}
+
+print_coff_file :: proc(filename: string, coff_file: Coff_File) {
+	using coff_file;
+	using fmt;
+
+	println();
+	println("Machine Type :", header.machine_type);
+	build_date := time.Time{_nsec = i64(header.time_date_stamp) * 1e9};
+	printf ("Timestamp          : %v\n\n", build_date);
+	printf ("Symbol Table Offset: %v\n", header.symbol_table_ptr);
+	printf ("Symbol Count       : %v\n\n", header.symbol_count);
+	println("# Sections         :", header.sections_count);
+	for section, i in section_headers {
+		name_ptr := &section_headers[i].name[0];
+		name := strings.trim_right_null(transmute(string)mem.Raw_String{name_ptr, 8});
+
+		printf("\t%2d: %v\n", i, name);
+		if section.virtual_size > 0 {
+			printf("\t\tVirtual Size      : %v\n", section.virtual_size);
+		}
+		if section.virtual_address > 0 {
+			printf("\t\tVirtual Addr      : 0x%08d\n", section.virtual_address);
+		}
+		printf("\t\tRaw Data Size     : %v\n", section.raw_data_size);
+		printf("\t\tRaw Data Offset   : %v\n", section.raw_data_ptr);
+		if section.relocations_ptr > 0 {
+			printf("\t\tRelocations Offset: %v\n", section.relocations_ptr);
+		}
+		if section.relocations_count > 0 {
+			printf("\t\tRelocations Count : %v\n", section.relocations_count);
+		}
+	}
+	println();
+	println(coff_file.section_headers[0]);
 }
 
 main :: proc() {
@@ -240,7 +286,7 @@ main :: proc() {
 		err = fmt.register_user_formatter(Section_Header, section_header_formatter);
 	}
 
-	if true {
+	if false {
 		filename := "../test/test.exe";
 		if pe_file, errors := parse_pe(filename); errors == .OK {
 
@@ -250,7 +296,7 @@ main :: proc() {
 			fmt.println();
 			for section, i in section_headers {
 				name_ptr := &section_headers[i].name[0];
-				name := transmute(string)mem.Raw_String{name_ptr, 8};
+				name := strings.trim_right_null(transmute(string)mem.Raw_String{name_ptr, 8});
 
 				fmt.println("Section: ", i, name);
 			}
@@ -265,18 +311,8 @@ main :: proc() {
 		filename := "../test/test.obj";
 		if coff_file, errors := parse_coff(filename); errors == .OK {
 
-			using coff_file;
-			build_date := time.Time{_nsec = i64(header.time_date_stamp) * 1e9};
-			fmt.printf("\n%v was built on %v\n", filename, build_date);
-			fmt.println();
-			for section, i in section_headers {
-				name_ptr := &section_headers[i].name[0];
-				name := transmute(string)mem.Raw_String{name_ptr, 8};
+			print_coff_file(filename, coff_file);
 
-				fmt.println("Section: ", i, name);
-			}
-			fmt.println();
-			fmt.println(coff_file);
 		} else {
 			fmt.println("Couldn't open", filename, errors);
 		}

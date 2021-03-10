@@ -91,10 +91,10 @@ Signature :: enum u16le {
 // http://msdn.microsoft.com/en-us/gg463119.aspx
 COFF_Header :: struct {
 	machine_type: Machine_Type,
-	number_of_sections: u16le,
+	sections_count: u16le,
 	time_date_stamp: u32le,	// Lower 32 bits of seconds since 1 Jan 1970, 00:00
-	pointer_to_symbol_table: u32le,
-	number_of_symbols: u32le,
+	symbol_table_ptr: u32le,
+	symbol_count: u32le,
 	optional_header_size: u16le,
 	characteristics: COFF_Characteristics,
 };
@@ -233,12 +233,12 @@ Section_Header :: struct {
 	name: [8]byte,
 	virtual_size: u32le,
 	virtual_address: u32le,
-	size_of_raw_data: u32le,
-	ptr_to_raw_data: u32le,
-	ptr_to_relocations: u32le,
-	ptr_to_line_numbers: u32le,
-	number_of_relocations: u16le,
-	number_of_line_numbers: u16le,
+	raw_data_size: u32le,
+	raw_data_ptr: u32le,
+	relocations_ptr: u32le,
+	line_numbers_ptr: u32le,
+	relocations_count: u16le,
+	line_numbers_count: u16le,
 	characteristics: Image_Section_Characteristics,
 
 }
