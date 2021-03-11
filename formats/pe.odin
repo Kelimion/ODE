@@ -145,10 +145,23 @@ parse_coff_from_byte_array :: proc(buffer: []byte, i_offset: int) -> (Coff_File,
 	for section, i in section_headers {
 		using section;
 		if relocations_count > 0 {
-			relocation_size := int(relocations_count) * Relocation_Entry_Size;
-			ok, relocation_bytes, rel_offset = get_bytes(buffer, int(relocations_ptr), relocation_size);
-			if ok == false do return coff_file, .File_Too_Short;
-			relocations[i] = mem.slice_data_cast([]Relocation_Entry, relocation_bytes);
+			relocation_size := int(relocations_count) * RELOCATION_ENTRY_SIZE;
+			if ok, relocation_bytes, rel_offset = get_bytes(buffer, int(relocations_ptr), relocation_size); ok {
+				relocations[i] = mem.slice_data_cast([]Relocation_Entry, relocation_bytes);
+			} else {
+				return coff_file, .File_Too_Short;
+			}
+		}
+	}
+
+	symbol_table_bytes: []byte;
+	if header.symbol_count > 0 {
+		sym_offset: = offset;
+		symbol_table_size := int(header.symbol_count) * SYMBOL_SIZE;
+		if ok, symbol_table_bytes, sym_offset = get_bytes(buffer, int(header.symbol_table_ptr), symbol_table_size); ok {
+			symbol_table = mem.slice_data_cast([]Symbol, symbol_table_bytes);
+		} else {
+			return coff_file, .File_Too_Short;			
 		}
 	}
 
@@ -266,6 +279,7 @@ print_coff_file :: proc(filename: string, coff_file: Coff_File) {
 	using fmt;
 
 	rel: []Relocation_Entry;
+	total_relocation_count := 0;
 
 	println();
 	println("Machine Type:", header.machine_type);
@@ -276,7 +290,7 @@ print_coff_file :: proc(filename: string, coff_file: Coff_File) {
 	println("# Sections:", header.sections_count);
 	for section, i in section_headers {
 		name := strings.trim_right_null(string(section_headers[i].name[:]));
-		printf("\t%2d: %v\n", i, name);
+		printf("\t%2d: %v\n", i+1, name);
 		if section.virtual_size > 0 {
 			printf("\t\tVirtual Size      : %v\n", section.virtual_size);
 		}
@@ -290,6 +304,7 @@ print_coff_file :: proc(filename: string, coff_file: Coff_File) {
 		}
 		if section.relocations_count > 0 {
 			printf("\t\tRelocations Count : %v\n", section.relocations_count);
+			total_relocation_count += int(section.relocations_count);
 		}
 		printf("\t\tChracteristics    : \n");
 
@@ -311,6 +326,16 @@ print_coff_file :: proc(filename: string, coff_file: Coff_File) {
 	}
 
 	println(rel);
+
+	println("\n# Relocations Total:", total_relocation_count);
+
+	for i in 0..9 {
+		sym := symbol_table[i];
+		if sym.storage_class != .null {
+			name := strings.trim_right_null(string(sym.name.short_name[:]));
+			printf("Symbol #%v: %v -> %v\n", i, name, sym);
+		}
+	}
 }
 
 main :: proc() {

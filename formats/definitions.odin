@@ -23,6 +23,7 @@ Coff_File :: struct {
 	section_headers: []Section_Header,
 
 	relocations: [][]Relocation_Entry,
+	symbol_table: []Symbol,
 }
 
 PE_Option_Flags :: enum {
@@ -251,11 +252,11 @@ Relocation_Entry :: struct #packed {
 	symbol_table_index: u32le, 
 	type: Relocation_Type,     // Type of relocation
 }
-Relocation_Entry_Size :: size_of(Relocation_Entry);
-#assert(Relocation_Entry_Size == 10);
+RELOCATION_ENTRY_SIZE :: size_of(Relocation_Entry);
+#assert(RELOCATION_ENTRY_SIZE == 10);
 
 Relocation_Type :: enum u16le {
-	// AMD64 relocation types
+	// MSVC - AMD64 relocation types
 	AMD64_Absolute           = 0x0000, // The relocation is ignored.
 	AMD64_Address_64         = 0x0001, // The 64-bit VA of the relocation target.
 	AMD64_Address_32         = 0x0002, // The 32-bit VA of the relocation target.
@@ -299,6 +300,63 @@ IMAGE_REL_AMD64_SSPAN32
 0x0010
 A 32-bit signed span-dependent value that is applied at link time.
 */
+}
+
+// https://docs.microsoft.com/en-us/windows/win32/debug/pe-format#coff-symbol-table
+Symbol :: struct #packed {
+	name: Symbol_Name,
+	value: u32le,
+	section_number: i16le,	// See: https://docs.microsoft.com/en-us/windows/win32/debug/pe-format#section-number-values
+	type: u16le,
+	storage_class: Symbol_Storage_Class,
+	aux_symbol_count: u8,
+}
+SYMBOL_SIZE :: size_of(Symbol);
+#assert(SYMBOL_SIZE == 18);
+
+Symbol_Name :: struct #raw_union {
+	short_name: [8]byte,
+	using tag: struct #packed {
+		zeroes: u32le,
+		offset: u32le,
+	}
+}
+
+Symbol_Section :: enum i16le {
+	undefined = 0,
+	absolute  = -1,
+	debug     = -2,
+}
+
+// https://docs.microsoft.com/en-us/windows/win32/debug/pe-format#storage-class
+Symbol_Storage_Class :: enum u8 {
+	null = 0,
+	automatic = 1, // stack, val = stack frame offset
+	external = 2,
+	static = 3,
+	register = 4,
+	external_def = 5,
+	label = 6,
+	undefined_label = 7,
+	struct_member = 8,
+	argument = 9,
+	struct_tag = 10,
+	union_member = 11,
+	union_tag = 12,
+	typedef = 13,
+	undefined_static = 14,
+	enum_tag = 15,
+	enum__member = 16,
+	register_param = 17,
+	bit_field = 18,
+	block = 100,
+	function = 101,
+	struct_end = 102,
+	file = 103,
+	section = 104,
+	weak_external = 105,
+	clr_token = 107,
+	function_end = 255,
 }
 
 Windows_Subsystem :: enum u16le {
