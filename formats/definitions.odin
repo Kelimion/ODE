@@ -21,6 +21,8 @@ Coff_File :: struct {
 	},
 	data_directory: []Data_Directory_Entry,		// Unused in object file
 	section_headers: []Section_Header,
+
+	relocations: [][]Relocation_Entry,
 }
 
 PE_Option_Flags :: enum {
@@ -240,10 +242,64 @@ Section_Header :: struct {
 	relocations_count: u16le,
 	line_numbers_count: u16le,
 	characteristics: Image_Section_Characteristics,
-
 }
 SECTION_HEADER_SIZE :: size_of(Section_Header);
 #assert(SECTION_HEADER_SIZE == 40);
+
+Relocation_Entry :: struct #packed {
+	virtual_address: u32le,    // Offset of item to be relocated
+	symbol_table_index: u32le, 
+	type: Relocation_Type,     // Type of relocation
+}
+Relocation_Entry_Size :: size_of(Relocation_Entry);
+#assert(Relocation_Entry_Size == 10);
+
+Relocation_Type :: enum u16le {
+	// AMD64 relocation types
+	AMD64_Absolute           = 0x0000, // The relocation is ignored.
+	AMD64_Address_64         = 0x0001, // The 64-bit VA of the relocation target.
+	AMD64_Address_32         = 0x0002, // The 32-bit VA of the relocation target.
+	AMD64_Address_32_No_Base = 0x0003, // The 32-bit address without an image base (RVA).
+	AMD64_Relocation_32      = 0x0004, // The 32-bit relative address from the byte following the relocation.
+/*
+IMAGE_REL_AMD64_REL32_1
+0x0005
+The 32-bit address relative to byte distance 1 from the relocation.
+IMAGE_REL_AMD64_REL32_2
+0x0006
+The 32-bit address relative to byte distance 2 from the relocation.
+IMAGE_REL_AMD64_REL32_3
+0x0007
+The 32-bit address relative to byte distance 3 from the relocation.
+IMAGE_REL_AMD64_REL32_4
+0x0008
+The 32-bit address relative to byte distance 4 from the relocation.
+IMAGE_REL_AMD64_REL32_5
+0x0009
+The 32-bit address relative to byte distance 5 from the relocation.
+IMAGE_REL_AMD64_SECTION
+0x000A
+The 16-bit section index of the section that contains the target. This is used to support debugging information.
+IMAGE_REL_AMD64_SECREL
+0x000B
+The 32-bit offset of the target from the beginning of its section. This is used to support debugging information and static thread local storage.
+IMAGE_REL_AMD64_SECREL7
+0x000C
+A 7-bit unsigned offset from the base of the section that contains the target.
+IMAGE_REL_AMD64_TOKEN
+0x000D
+CLR tokens.
+IMAGE_REL_AMD64_SREL32
+0x000E
+A 32-bit signed span-dependent value emitted into the object.
+IMAGE_REL_AMD64_PAIR
+0x000F
+A pair that must immediately follow every span-dependent value.
+IMAGE_REL_AMD64_SSPAN32
+0x0010
+A 32-bit signed span-dependent value that is applied at link time.
+*/
+}
 
 Windows_Subsystem :: enum u16le {
 	Unknown                  = 0,
@@ -315,3 +371,38 @@ Image_Section_Flags :: enum u32le {
 	Mem_Write             = 31, // 0x80000000
 }
 Image_Section_Characteristics :: distinct bit_set[Image_Section_Flags; u32le];
+
+Image_Section_Flag_Names : []string = {
+	"",
+	"",
+	"",
+	"Type No Pad (Obsolete)",
+	"Reserved 1",
+	"Code",
+	"Initialized Data",
+	"Uninitalized Data",
+	"Link Other",
+	"Link Info",
+	"Reserved 2",
+	"Link Remove",
+	"Link Comdat",
+	"Reserved 3",
+	"Reserved 4",
+	"GP Relative",
+	"Mem Purgeable",
+	"Mem 16 Bit",
+	"Mem Locked",
+	"Mem Preload",
+	"Align 1 Bit",
+	"Align 2 Bit",
+	"Align 4 Bit",
+	"Align 8 Bit",
+	"Relocation Overflow",
+	"Mem Discardable",
+	"Mem Not Cached",
+	"Mem Not Paged",
+	"Mem Shared",
+	"Mem Execute",
+	"Mem Read",
+	"Mem Write",
+};
