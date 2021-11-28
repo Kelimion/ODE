@@ -30,7 +30,7 @@ PE_Option_Flags :: enum {
 	Fill_Real_Mode_Stub,
 	Fill_Raw_Buffer,	
 }
-PE_Options :: distinct bit_set[PE_Option_Flags];
+PE_Options :: distinct bit_set[PE_Option_Flags]
 
 PE_Errors :: enum {
 	OK = 0,
@@ -70,15 +70,15 @@ DOS_Header :: struct {
     reserved2: [10]u16le,
     pe_header_offset: u32le,
 }
-DOS_HEADER_SIZE :: size_of(DOS_Header);
-#assert(DOS_HEADER_SIZE == 64);
+DOS_HEADER_SIZE :: size_of(DOS_Header)
+#assert(DOS_HEADER_SIZE == 64)
 
 PE_Header :: struct {
 	signature: Signature,
 	sig_zeroes: u16le,      // \0\0 after PE
 }
-PE_HEADER_SIZE :: size_of(PE_Header);
-#assert(PE_HEADER_SIZE == 4);
+PE_HEADER_SIZE :: size_of(PE_Header)
+#assert(PE_HEADER_SIZE == 4)
 
 Signature :: enum u16le {
 	DOS    = 0x5a4d, // MZ
@@ -100,9 +100,9 @@ COFF_Header :: struct {
 	symbol_count: u32le,
 	optional_header_size: u16le,
 	characteristics: COFF_Characteristics,
-};
-COFF_HEADER_SIZE :: size_of(COFF_Header);
-#assert(COFF_HEADER_SIZE == 20);
+}
+COFF_HEADER_SIZE :: size_of(COFF_Header)
+#assert(COFF_HEADER_SIZE == 20)
 
 Machine_Type :: enum u16le {
 	Unknown   = 0x0,
@@ -151,7 +151,7 @@ COFF_Characteristics_Flags :: enum u16le {
     Bytes_Reversed_HI           = 15,
 }
 
-COFF_Characteristics :: distinct bit_set[COFF_Characteristics_Flags; u16le];
+COFF_Characteristics :: distinct bit_set[COFF_Characteristics_Flags; u16le]
 
 PE32_Optional_Header :: struct {
 	// Standard Fields
@@ -187,8 +187,8 @@ PE32_Optional_Header :: struct {
 	loader_flags: u32le,
 	number_of_rva_and_size: u32le,
 }
-PE32_OPTIONAL_HEADER_SIZE :: size_of(PE32_Optional_Header);
-#assert(PE32_OPTIONAL_HEADER_SIZE == 96);
+PE32_OPTIONAL_HEADER_SIZE :: size_of(PE32_Optional_Header)
+#assert(PE32_OPTIONAL_HEADER_SIZE == 96)
 
 PE64_Optional_Header :: struct {
 	// Standard Fields
@@ -223,14 +223,14 @@ PE64_Optional_Header :: struct {
 	loader_flags: u32le,
 	number_of_rva_and_size: u32le,
 }
-PE64_OPTIONAL_HEADER_SIZE :: size_of(PE64_Optional_Header);
-#assert(PE64_OPTIONAL_HEADER_SIZE == 112);
+PE64_OPTIONAL_HEADER_SIZE :: size_of(PE64_Optional_Header)
+#assert(PE64_OPTIONAL_HEADER_SIZE == 112)
 
 Data_Directory_Entry :: struct {
 	virtual_address: u32le,
 	size: u32le,
 }
-DATA_DIRECTORY_SIZE :: size_of(Data_Directory_Entry);
+DATA_DIRECTORY_SIZE :: size_of(Data_Directory_Entry)
 
 Section_Header :: struct {
 	name: [8]byte,
@@ -244,16 +244,16 @@ Section_Header :: struct {
 	line_numbers_count: u16le,
 	characteristics: Image_Section_Characteristics,
 }
-SECTION_HEADER_SIZE :: size_of(Section_Header);
-#assert(SECTION_HEADER_SIZE == 40);
+SECTION_HEADER_SIZE :: size_of(Section_Header)
+#assert(SECTION_HEADER_SIZE == 40)
 
 Relocation_Entry :: struct #packed {
 	virtual_address: u32le,    // Offset of item to be relocated
 	symbol_table_index: u32le, 
 	type: Relocation_Type,     // Type of relocation
 }
-RELOCATION_ENTRY_SIZE :: size_of(Relocation_Entry);
-#assert(RELOCATION_ENTRY_SIZE == 10);
+RELOCATION_ENTRY_SIZE :: size_of(Relocation_Entry)
+#assert(RELOCATION_ENTRY_SIZE == 10)
 
 Relocation_Type :: enum u16le {
 	// MSVC - AMD64 relocation types
@@ -311,15 +311,15 @@ Symbol :: struct #packed {
 	storage_class: Symbol_Storage_Class,
 	aux_symbol_count: u8,
 }
-SYMBOL_SIZE :: size_of(Symbol);
-#assert(SYMBOL_SIZE == 18);
+SYMBOL_SIZE :: size_of(Symbol)
+#assert(SYMBOL_SIZE == 18)
 
 Symbol_Name :: struct #raw_union {
 	short_name: [8]byte,
 	using tag: struct #packed {
 		zeroes: u32le,
 		offset: u32le,
-	}
+	},
 }
 
 Symbol_Section :: enum i16le {
@@ -395,7 +395,7 @@ DLL_Characteristics_Flags :: enum u16le {
 	Terminal_Server_Aware = 15,
 }
 
-DLL_Characteristics :: distinct bit_set[DLL_Characteristics_Flags; u16le];
+DLL_Characteristics :: distinct bit_set[DLL_Characteristics_Flags; u16le]
 
 Image_Section_Flags :: enum u32le {
 	Type_No_Pad           =  3, // 0x00000008
@@ -428,7 +428,7 @@ Image_Section_Flags :: enum u32le {
 	Mem_Read              = 30, // 0x40000000
 	Mem_Write             = 31, // 0x80000000
 }
-Image_Section_Characteristics :: distinct bit_set[Image_Section_Flags; u32le];
+Image_Section_Characteristics :: distinct bit_set[Image_Section_Flags; u32le]
 
 Image_Section_Flag_Names : []string = {
 	"",
